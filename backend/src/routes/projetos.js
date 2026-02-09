@@ -31,11 +31,11 @@ router.get('/:id', async (req, res) => {
 // POST - Criar novo projeto
 router.post('/', async (req, res) => {
   try {
-    const { nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto, status } = req.body;
+    const { nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto, orcamento_realizado, status, coordenador_id } = req.body;
     const result = await pool.query(
-      `INSERT INTO projetos (nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto, status, ativo) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, true) RETURNING *`,
-      [nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto || 0, status || 'Planejamento']
+      `INSERT INTO projetos (nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto, orcamento_realizado, status, ativo, coordenador_id) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true, $9) RETURNING *`,
+      [nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto || 0, orcamento_realizado || 0, status || 'Planejamento', coordenador_id || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -48,13 +48,13 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto, orcamento_realizado, status, ativo } = req.body;
+    const { nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto, orcamento_realizado, status, ativo, coordenador_id } = req.body;
     const result = await pool.query(
       `UPDATE projetos 
        SET nome=$1, descricao=$2, escopo=$3, data_inicio=$4, data_fim=$5, 
-           orcamento_previsto=$6, orcamento_realizado=$7, status=$8, ativo=$9 
-       WHERE id=$10 RETURNING *`,
-      [nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto, orcamento_realizado, status, ativo, id]
+           orcamento_previsto=$6, orcamento_realizado=$7, status=$8, ativo=$9, coordenador_id=$10 
+       WHERE id=$11 RETURNING *`,
+      [nome, descricao, escopo, data_inicio, data_fim, orcamento_previsto, orcamento_realizado, status, ativo, coordenador_id ?? null, id]
     );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Projeto não encontrado' });
