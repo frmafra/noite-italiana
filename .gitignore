@@ -1,0 +1,51 @@
+# Dependências
+node_modules/
+venv/
+__pycache__/
+*.pyc
+.pyo
+*.pyo
+.Python
+env/
+.venv/
+
+# Configurações sensíveis
+.env
+.env.*
+*.pem
+config.local.*
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs e caches
+*.log
+.cache/
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Build
+dist/
+build/
+.next/
+out/
+*.min.js
+*.min.css
+
+# IDE
+.idea/
+.vscode/
+*.sublime-*
+
+# Uploads e temporários
+uploads/
+tmp/
+temp/
+*.tmp
+
+# Backups (arquivos muito grandes para o GitHub)
+*.tar.gz
+*.tar
+backups/

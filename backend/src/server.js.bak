@@ -1,0 +1,364 @@
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const pool = new Pool({
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  port: process.env.DB_PORT,
+});
+
+// ========== PROJETOS ==========
+app.get('/api/projetos', async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM projetos WHERE ativo = true ORDER BY id DESC');
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/projetos/full', async (req, res) => {
+  try {
+    const r = await pool.query('SELECT * FROM projetos ORDER BY id DESC');
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/projetos', async (req, res) => {
+  const { nome, descricao, data_inicio, data_fim, status } = req.body;
+  try {
+    const r = await pool.query(
+      'INSERT INTO projetos (nome, descricao, data_inicio, data_fim, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [nome, descricao, data_inicio, data_fim, status]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/projetos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nome, descricao, data_inicio, data_fim, status } = req.body;
+  try {
+    const r = await pool.query(
+      'UPDATE projetos SET nome=$1, descricao=$2, data_inicio=$3, data_fim=$4, status=$5 WHERE id=$6 RETURNING *',
+      [nome, descricao, data_inicio, data_fim, status, id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/projetos/:id/toggle', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const r = await pool.query('UPDATE projetos SET ativo = NOT ativo WHERE id=$1 RETURNING *', [id]);
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== ATAS ==========
+app.get('/api/atas', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT a.*, p.nome as projeto_nome 
+      FROM atas_reuniao a 
+      LEFT JOIN projetos p ON a.projeto_id = p.id 
+      ORDER BY a.data_reuniao DESC
+    `);
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/atas', async (req, res) => {
+  const { titulo, conteudo, data_reuniao, projeto_id } = req.body;
+  try {
+    const r = await pool.query(
+      'INSERT INTO atas_reuniao (titulo, conteudo, data_reuniao, projeto_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [titulo, conteudo, data_reuniao, projeto_id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== CONVITES ==========
+app.get('/api/convites', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT c.*, p.nome as projeto_nome 
+      FROM convites c 
+      LEFT JOIN projetos p ON c.projeto_id = p.id 
+      ORDER BY c.id DESC
+    `);
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/convites', async (req, res) => {
+  const { nome_lote, valor_unitario, quantidade_total, projeto_id } = req.body;
+  try {
+    const r = await pool.query(
+      'INSERT INTO convites (nome_lote, valor_unitario, quantidade_total, projeto_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nome_lote, valor_unitario, quantidade_total, projeto_id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== PATROCÍNIOS ==========
+app.get('/api/patrocinios', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT pa.*, p.nome as projeto_nome 
+      FROM patrocinios pa 
+      LEFT JOIN projetos p ON pa.projeto_id = p.id 
+      ORDER BY pa.id DESC
+    `);
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/patrocinios', async (req, res) => {
+  const { empresa_nome, cota_tipo, valor_contribuicao, projeto_id, data_prevista } = req.body;
+  try {
+    const r = await pool.query(
+      'INSERT INTO patrocinios (empresa_nome, cota_tipo, valor_contribuicao, projeto_id, data_prevista, status_recebimento) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [empresa_nome, cota_tipo, valor_contribuicao, projeto_id, data_prevista, 'Previsto']
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/patrocinios/:id/baixar', async (req, res) => {
+  const { id } = req.params;
+  const { valor_recebido, data_recebimento, observacoes } = req.body;
+  try {
+    const r = await pool.query(
+      'UPDATE patrocinios SET status_recebimento = $1, valor_recebido = $2, data_recebimento = $3, observacoes = $4 WHERE id = $5 RETURNING *',
+      ['Recebido', valor_recebido, data_recebimento, observacoes, id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== MEMBROS DO COMITÊ ==========
+app.get('/api/membros', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT m.*, p.nome as projeto_nome 
+      FROM comite_membros m 
+      LEFT JOIN projetos p ON m.projeto_id = p.id 
+      WHERE m.ativo = true 
+      ORDER BY m.id DESC
+    `);
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/membros', async (req, res) => {
+  const { nome, cargo, entidade_origem, projeto_id } = req.body;
+  try {
+    const r = await pool.query(
+      'INSERT INTO comite_membros (nome, cargo, entidade_origem, projeto_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [nome, cargo, entidade_origem, projeto_id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/membros/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nome, cargo, entidade_origem } = req.body;
+  try {
+    const r = await pool.query(
+      'UPDATE comite_membros SET nome=$1, cargo=$2, entidade_origem=$3 WHERE id=$4 RETURNING *',
+      [nome, cargo, entidade_origem, id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/membros/:id/toggle', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const r = await pool.query('UPDATE comite_membros SET ativo = NOT ativo WHERE id=$1 RETURNING *', [id]);
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== CRONOGRAMA ==========
+app.get('/api/cronograma', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT c.*, p.nome as projeto_nome 
+      FROM cronograma c 
+      LEFT JOIN projetos p ON c.projeto_id = p.id 
+      ORDER BY c.prazo ASC
+    `);
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/cronograma', async (req, res) => {
+  const { atividade, prazo, responsavel, projeto_id } = req.body;
+  try {
+    const r = await pool.query(
+      'INSERT INTO cronograma (atividade, prazo, responsavel, projeto_id) VALUES ($1, $2, $3, $4) RETURNING *',
+      [atividade, prazo, responsavel, projeto_id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/cronograma/:id', async (req, res) => {
+  const { id } = req.params;
+  const { atividade, prazo, responsavel } = req.body;
+  try {
+    const r = await pool.query(
+      'UPDATE cronograma SET atividade=$1, prazo=$2, responsavel=$3 WHERE id=$4 RETURNING *',
+      [atividade, prazo, responsavel, id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/cronograma/:id/status', async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  try {
+    const r = await pool.query('UPDATE cronograma SET status=$1 WHERE id=$2 RETURNING *', [status, id]);
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== RECEBIMENTOS ==========
+app.get('/api/recebimentos', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT rec.*, p.nome as projeto_nome 
+      FROM recebimentos rec 
+      LEFT JOIN projetos p ON rec.projeto_id = p.id 
+      ORDER BY rec.data_prevista ASC
+    `);
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/recebimentos', async (req, res) => {
+  const { projeto_id, descricao, valor_previsto, data_prevista } = req.body;
+  try {
+    const r = await pool.query(
+      'INSERT INTO recebimentos (projeto_id, descricao, valor_previsto, data_prevista, status) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [projeto_id, descricao, valor_previsto, data_prevista, 'Previsto']
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/recebimentos/:id/baixar', async (req, res) => {
+  const { id } = req.params;
+  const { valor_recebido, data_recebimento, observacoes } = req.body;
+  try {
+    const r = await pool.query(
+      'UPDATE recebimentos SET status = $1, valor_recebido = $2, data_recebimento = $3, observacoes = $4 WHERE id = $5 RETURNING *',
+      ['Recebido', valor_recebido, data_recebimento, observacoes, id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ========== PAGAMENTOS ==========
+app.get('/api/pagamentos', async (req, res) => {
+  try {
+    const r = await pool.query(`
+      SELECT pag.*, p.nome as projeto_nome 
+      FROM pagamentos pag 
+      LEFT JOIN projetos p ON pag.projeto_id = p.id 
+      ORDER BY pag.data_prevista ASC
+    `);
+    res.json(r.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/pagamentos', async (req, res) => {
+  const { projeto_id, descricao, fornecedor, valor_previsto, data_prevista } = req.body;
+  try {
+    const r = await pool.query(
+      'INSERT INTO pagamentos (projeto_id, descricao, fornecedor, valor_previsto, data_prevista, status) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [projeto_id, descricao, fornecedor, valor_previsto, data_prevista, 'Previsto']
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/pagamentos/:id/baixar', async (req, res) => {
+  const { id } = req.params;
+  const { valor_pago, data_pagamento, observacoes } = req.body;
+  try {
+    const r = await pool.query(
+      'UPDATE pagamentos SET status = $1, valor_pago = $2, data_pagamento = $3, observacoes = $4 WHERE id = $5 RETURNING *',
+      ['Pago', valor_pago, data_pagamento, observacoes, id]
+    );
+    res.json(r.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.listen(4001, () => {
+  console.log('🚀 API completa rodando na porta 4001');
+});
