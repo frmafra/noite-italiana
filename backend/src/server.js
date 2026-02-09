@@ -29,7 +29,6 @@ const cotacoesRoutes = require(path.join(routesDir, 'cotacoes'));
 const aprovacoesComprasRoutes = require(path.join(routesDir, 'aprovacoes-compras'));
 const pedidosComprasRoutes = require(path.join(routesDir, 'pedidos-compras'));
 const entradasMercadoriaRoutes = require(path.join(routesDir, 'entradas-mercadoria'));
-const fornecedoresRoutes = require(path.join(routesDir, 'fornecedores'));
 const notaFiscalEntradaRoutes = require(path.join(routesDir, 'nota-fiscal-entrada'));
 const pagamentoNfRoutes = require(path.join(routesDir, 'pagamento-nf'));
 
@@ -40,6 +39,7 @@ app.use('/api/produtos', produtosRoutes);
 app.use('/api/bancos', bancosRoutes);
 app.use('/api/areas-base', areasBaseRoutes);
 app.use('/api/areas-projeto', areasProjetoRoutes);
+app.use('/api/config-pastas', areasProjetoRoutes);
 app.use('/api/atividades', atividadesRoutes);
 app.use('/api/lancamentos', lancamentosRoutes);
 app.use('/api/contas-pagar', contasPagarRoutes);
@@ -54,7 +54,7 @@ app.use('/api/cotacoes', cotacoesRoutes);
 app.use('/api/aprovacoes-compras', aprovacoesComprasRoutes);
 app.use('/api/pedidos-compras', pedidosComprasRoutes);
 app.use('/api/entradas-mercadoria', entradasMercadoriaRoutes);
-app.use('/api/fornecedores', fornecedoresRoutes);
+app.use('/api/fornecedores', parceirosRoutes);
 app.use('/api/nota-fiscal-entrada', notaFiscalEntradaRoutes);
 app.use('/api/pagamento-nf', pagamentoNfRoutes);
 
