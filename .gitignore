@@ -49,3 +49,14 @@ temp/
 *.tar.gz
 *.tar
 backups/
+*.bak
+*.backup-*
+*.broken
+
+# Frontend (Next.js e deps)
+frontend/.next/
+frontend/node_modules/
+
+# PM2
+.pm2/
+*.pm2.log
